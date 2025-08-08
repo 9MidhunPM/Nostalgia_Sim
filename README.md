@@ -1,86 +1,84 @@
-<img width="3188" height="1202" alt="Nostalgia Simulator Banner" src="https://github.com/user-attachments/assets/517ad8e9-ad22-457d-9538-a9e62d137cd7" />
+# Nostalgia Simulator 🎯
 
-Nostalgia Simulator 🎯
-Basic Details
-Team Name: The Channel Surfers
-Team Members
-Team Lead: Midhun - [Your College]
+## Basic Details
+### Team Name: RetroRewinders
 
-Member 2: [Name] - [College]
+### Team Members
+- Team Lead: Midhun - Sahrdaya College of Engineering
+- Member 2: [Name] - [College]
+- Member 3: [Name] - [College]
 
-Member 3: [Name] - [College]
+### Project Description
+Nostalgia Simulator is a C++ application that recreates the feel of an old CRT TV with multiple “channels,” each hosting a different game or visualizer. It features classic games, video playback, and authentic CRT effects powered by raylib and GLSL shaders.
 
-Project Description
-The Nostalgia Simulator is a high-fidelity recreation of staring at a CRT television in the late 90s. It's a multi-channel application featuring several classic games and screensavers, all rendered through an authentic retro shader that simulates screen curvature, scanlines, and static interference.
+### The Problem (that doesn't exist)
+Who actually needs a modern, slick UI when you can have fuzzy static, bouncing DVD logos, and pixelated Pac-Man ghosts? Nobody asked for this, but everyone secretly wants it.
 
-The Problem (that doesn't exist)
-In today's fast-paced world of 4K streaming and instant gratification, we've lost the simple joy of flipping through a limited number of channels, hoping to find something, anything, to watch. The youth of today will never know the suspense of a bouncing DVD logo or the hypnotic trance of screen static.
+### The Solution (that nobody asked for)
+We’re throwing a time machine into your screen—multiple games, a rickroll video, and more—wrapped in a CRT shader that makes your monitor feel like it’s from the 80s. Channel surf your boredom away with glitchy nostalgia and retro vibes.
 
-The Solution (that nobody asked for)
-We've bottled that feeling. The Nostalgia Simulator provides a curated set of channels, including playable classics like Pac-Man and Pong, the legendary DVD screensaver, and even a surprise or two. It's a digital time capsule designed to solve a problem you didn't know you had: a distinct lack of fuzzy, low-resolution entertainment.
+## Technical Details
+### Technologies/Components Used
 
-Technical Details
-Technologies/Components Used
-For Software:
+**Software:**
+- C++ (Core language)
+- raylib (Graphics & audio)
+- GLSL (CRT post-processing shader)
+- Emscripten (For web deployment)
 
-Languages: C++, GLSL (for the CRT shader)
+**Hardware:**
+- Standard PC or laptop capable of running OpenGL apps
+- Web browser (for WebAssembly version)
 
-Libraries: raylib, raymath
+### Implementation
 
-Tools: MinGW (for Windows compilation), Emscripten (for web compilation), Python (for local web server)
+**Installation (Desktop):**
+- bash
+- git clone https://github.com/9MidhunPM/Nostalgia_Sim
+- cd NostalgiaSimulator
+- mkdir build && cd build
+- cmake ..
+- make
+- ./NostalgiaSimulator
 
-For Hardware:
 
-This is a software-only project. The only required hardware is a computer and a longing for the past.
-
-Implementation
-For Software:
-
-Installation (Desktop - Windows)
-# Ensure you have raylib configured with your g++ compiler
-g++ main.cpp -o NostalgiaSimulator.exe -lraylib -lopengl32 -lgdi32 -lwinmm
-
-Run (Desktop)
-./NostalgiaSimulator.exe
-
-Installation (Web)
+**Installation (Web)**
 # Ensure you have Emscripten and raylib for web configured
-em++ main.cpp -o index.js -Os -s USE_GLFW=3 -s ASYNCIFY --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L "path/to/raylib/build_web/raylib" -lraylib
 
-Run (Web)
+- em++ main.cpp -o index.js -Os -s USE_GLFW=3 -s ASYNCIFY --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L - - "path/to/raylib/build_web/raylib" -lraylib ```
+
+**Run (Web)**
 # You'll need a simple local server to run the web build
-python -m http.server
+- python -m http.server
 # Then open your browser to http://localhost:8000
 
-Project Documentation
-For Software:
+**Project Documentation**
+# For Software:
 
-Screenshots (Add at least 3)
-The Pac-Man channel in action, complete with the CRT shader effect.
+# Screenshots
+- The Pac-Man channel in action, complete with the CRT shader effect.
 
-A heated match of Pong against the surprisingly competent AI.
+- A heated match of Pong against the surprisingly competent AI.
 
-The legendary bouncing DVD logo, a sight that has brought joy to millions.
+- The legendary bouncing DVD logo, a sight that has brought joy to millions.
 
-Diagrams
-Our workflow consists of a main loop that draws the active "Channel" to a render texture, which is then drawn to the screen with the CRT shader applied.
+# Diagrams
+- Our workflow consists of a main loop that draws the active "Channel" to a render texture, which is then drawn to the screen with the CRT shader applied.
 
-For Hardware:
-N/A
+# For Hardware:
+- N/A
 
-Project Demo
-Video
-[Add your demo video link here - e.g., a YouTube or Loom link]
-This video demonstrates the seamless channel surfing, gameplay from Pac-Man and Pong, and the various visual effects of the CRT shader.
+### Project Demo
+- [Demo Link](https://9midhunpm.github.io/Nostalgia_Sim/)
 
-Additional Demos
-[Link to the live web build if you host it somewhere like GitHub Pages]
+## Team Contributions
+- Midhun: Project Lead, core application architecture, implemented the channel system, developed Pac-Man and Pong game logic, integrated the CRT shader, and handled the Emscripten web build.
 
-Team Contributions
-Midhun: Project Lead, core application architecture, implemented the channel system, developed Pac-Man and Pong game logic, integrated the CRT shader, and handled the Emscripten web build.
+- Sharon: Building the core logics and debugging of pacman and pong game logic
 
-[Name 2]: [Specific contributions]
-
-[Name 3]: [Specific contributions]
 
 Made with ❤️ at TinkerHub Useless Projects
+
+![Static Badge](https://img.shields.io/badge/TinkerHub-24?color=%23000000&link=https%3A%2F%2Fwww.tinkerhub.org%2F)
+![Static Badge](https://img.shields.io/badge/UselessProjects--25-25?link=https%3A%2F%2Fwww.tinkerhub.org%2Fevents%2FQ2Q1TQKX6Q%2FUseless%2520Projects)
+
