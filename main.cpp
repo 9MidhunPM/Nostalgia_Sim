@@ -36,6 +36,8 @@ public:
     }
 };
 
+// ---------- PacmanChannel ----------
+
 class PacmanChannel : public IChannel {
 private:
     //----------------------------------------------------------------------------------
@@ -45,13 +47,12 @@ private:
 
     enum GhostType { BLINKY, PINKY, INKY, CLYDE };
     enum GhostState { CHASING, FRIGHTENED, EATEN };
+    enum RoundState { READY, PLAYING, PLAYER_DYING, LEVEL_COMPLETE };
 
     struct Player {
         Vector2 position, startPosition, direction = {0, 0}, desiredDirection = {0, 0};
-        float speed = 2.5f;
+        float speed = 2.8f;
         float radius = TILE_SIZE / 2.0f - 2.0f;
-        int frameCounter = 0;
-        int currentFrame = 0;
     };
 
     struct Ghost {
@@ -62,8 +63,6 @@ private:
         float stateTimer = 0.0f;
         float speed = 2.0f;
         float radius = TILE_SIZE / 2.0f - 2.0f;
-        int frameCounter = 0;
-        int currentFrame = 0;
     };
 
     struct Pellet {
@@ -93,8 +92,18 @@ private:
     bool gameOver = false;
     bool victory = false;
 
-    Texture2D pacmanTexture;
-    Texture2D ghostsTexture;
+    RoundState roundState = READY;
+    float roundStateTimer = 2.0f;
+    int ghostsEatenThisPowerup = 0;
+
+    bool mapLoaded = false;
+    std::string loadErrorText = "";
+
+    Sound sndChomp;
+    Sound sndEatGhost;
+    Sound sndDeath;
+    Sound sndStart;
+
 
     //----------------------------------------------------------------------------------
     // Private Module Functions
@@ -118,11 +127,17 @@ private:
         walls.clear();
         pellets.clear();
         ghosts.clear();
-        activePellets = 0;
         mapWidth = 0;
         mapHeight = 0;
 
         std::ifstream file(fileName);
+        if (!file.is_open()) {
+            mapLoaded = false;
+            loadErrorText = "ERROR: level.txt not found!";
+            TraceLog(LOG_ERROR, "Failed to open map file: %s", fileName);
+            return;
+        }
+
         std::string line;
         int y = 0;
         while (std::getline(file, line)) {
@@ -131,8 +146,8 @@ private:
                 Vector2 pos = { x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2 };
                 switch (line[x]) {
                     case '#': walls.push_back({ { pos.x - TILE_SIZE/2, pos.y - TILE_SIZE/2, TILE_SIZE, TILE_SIZE } }); break;
-                    case '.': pellets.push_back({ pos, 2.0f, true, false, 10 }); activePellets++; break;
-                    case 'O': pellets.push_back({ pos, 6.0f, true, true, 50 }); activePellets++; break;
+                    case '.': pellets.push_back({ pos, 2.0f, true, false, 10 }); break;
+                    case 'O': pellets.push_back({ pos, 6.0f, true, true, 50 }); break;
                     case 'P': player.startPosition = pos; break;
                     case 'G': ghosts.push_back({ pos, pos, {-1, 0}, (GhostType)(ghosts.size() % 4) }); break;
                 }
@@ -140,9 +155,27 @@ private:
             y++;
         }
         mapHeight = y;
+        mapLoaded = true;
     }
 
     void ResetGame() {
+        if (!mapLoaded) return;
+        
+        playerLives = 3;
+        score = 0;
+        gameOver = false;
+        victory = false;
+        
+        activePellets = 0;
+        for (auto& p : pellets) {
+            p.active = true;
+            activePellets++;
+        }
+
+        StartNewRound();
+    }
+
+    void StartNewRound() {
         player.position = player.startPosition;
         player.direction = {0, 0};
         player.desiredDirection = {0, 0};
@@ -152,19 +185,10 @@ private:
             ghost.state = CHASING;
             ghost.direction = {-1, 0};
         }
-
-        activePellets = 0;
-        for (auto& p : pellets) {
-            if (!p.active) {
-                p.active = true;
-            }
-            activePellets++;
-        }
         
-        playerLives = 3;
-        score = 0;
-        gameOver = false;
-        victory = false;
+        roundState = READY;
+        roundStateTimer = 2.0f;
+        PlaySound(sndStart);
     }
 
     void ResetAfterLifeLost() {
@@ -176,19 +200,25 @@ private:
             ghost.state = CHASING;
             ghost.direction = {-1, 0};
         }
+        roundState = READY;
+        roundStateTimer = 2.0f;
     }
 
 public:
     PacmanChannel() {
         LoadMap("level.txt");
-        pacmanTexture = LoadTexture("pacman_sprites.png");
-        ghostsTexture = LoadTexture("ghost_sprites.png");
+        sndChomp = LoadSound("assets/chomp.wav");
+        sndEatGhost = LoadSound("assets/eatghost.wav");
+        sndDeath = LoadSound("assets/death.wav");
+        sndStart = LoadSound("assets/start.wav");
         ResetGame();
     }
 
     ~PacmanChannel() {
-        UnloadTexture(pacmanTexture);
-        UnloadTexture(ghostsTexture);
+        UnloadSound(sndChomp);
+        UnloadSound(sndEatGhost);
+        UnloadSound(sndDeath);
+        UnloadSound(sndStart);
     }
 
     void OnEnter() override {
@@ -196,173 +226,198 @@ public:
     }
 
     void Update() override {
-        if (gameOver || victory) {
-            if (IsKeyPressed(KEY_ENTER)) {
-                ResetGame();
-            }
+        if (!mapLoaded || gameOver || victory) {
+            if (IsKeyPressed(KEY_ENTER)) ResetGame();
             return;
         }
 
-        // --- Player Update ---
-        if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) player.desiredDirection = { 1.0f, 0.0f };
-        else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) player.desiredDirection = { -1.0f, 0.0f };
-        else if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) player.desiredDirection = { 0.0f, -1.0f };
-        else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) player.desiredDirection = { 0.0f, 1.0f };
+        if (roundState == READY || roundState == PLAYING) {
+            if (IsKeyDown(KEY_D)) player.desiredDirection = { 1.0f, 0.0f };
+            else if (IsKeyDown(KEY_A)) player.desiredDirection = { -1.0f, 0.0f };
+            else if (IsKeyDown(KEY_W)) player.desiredDirection = { 0.0f, -1.0f };
+            else if (IsKeyDown(KEY_S)) player.desiredDirection = { 0.0f, 1.0f };
 
-        Vector2 playerTile = WorldToTile(player.position);
-        Vector2 playerTileCenter = { playerTile.x * TILE_SIZE + TILE_SIZE / 2, playerTile.y * TILE_SIZE + TILE_SIZE / 2 };
+            Vector2 playerTile = WorldToTile(player.position);
+            Vector2 playerTileCenter = { playerTile.x * TILE_SIZE + TILE_SIZE / 2, playerTile.y * TILE_SIZE + TILE_SIZE / 2 };
 
-        if (Vector2Distance(player.position, playerTileCenter) < player.speed * 1.1f) {
-            player.position = playerTileCenter;
             Vector2 nextTileDesired = Vector2Add(playerTile, player.desiredDirection);
             if (!IsWall(nextTileDesired.x, nextTileDesired.y)) {
-                player.direction = player.desiredDirection;
+                bool isOpposite = (player.desiredDirection.x == -player.direction.x && player.desiredDirection.y == -player.direction.y);
+                if (isOpposite || (player.desiredDirection.x != player.direction.x || player.desiredDirection.y != player.direction.y)) {
+                    if (Vector2Distance(player.position, playerTileCenter) < player.speed) {
+                        player.position = playerTileCenter;
+                        player.direction = player.desiredDirection;
+                    }
+                }
             }
+
             Vector2 nextTileCurrent = Vector2Add(playerTile, player.direction);
             if (IsWall(nextTileCurrent.x, nextTileCurrent.y)) {
-                player.direction = { 0, 0 };
-            }
-        }
-        player.position = Vector2Add(player.position, Vector2Scale(player.direction, player.speed));
-
-        player.frameCounter++;
-        if (player.frameCounter >= 8) {
-            player.frameCounter = 0;
-            player.currentFrame = (player.currentFrame + 1) % 2;
-        }
-        if (Vector2Length(player.direction) == 0) player.currentFrame = 0;
-
-        // --- Ghost Update ---
-        for (auto& ghost : ghosts) {
-            if (ghost.state != CHASING) {
-                ghost.stateTimer -= GetFrameTime();
-                if (ghost.stateTimer <= 0) {
-                    ghost.state = CHASING;
-                    ghost.speed = 2.0f;
+                if (Vector2Distance(player.position, playerTileCenter) < player.speed) {
+                    player.position = playerTileCenter;
+                    player.direction = { 0, 0 };
                 }
             }
-
-            Vector2 ghostTile = WorldToTile(ghost.position);
-            Vector2 ghostTileCenter = { ghostTile.x * TILE_SIZE + TILE_SIZE / 2, ghostTile.y * TILE_SIZE + TILE_SIZE / 2 };
             
-            if (Vector2Distance(ghost.position, ghostTileCenter) < ghost.speed * 1.1f) {
-                 ghost.position = ghostTileCenter;
-                float min_dist = 10000.0f;
-                Vector2 best_dir = {0,0};
-                std::vector<Vector2> possible_dirs = {{0,-1}, {0,1}, {-1,0}, {1,0}};
-                Vector2 oppositeDir = Vector2Scale(ghost.direction, -1);
+            player.position = Vector2Add(player.position, Vector2Scale(player.direction, player.speed));
 
-                for(const auto& dir : possible_dirs) {
-                    if (dir.x == oppositeDir.x && dir.y == oppositeDir.y) continue;
-                    Vector2 nextTile = Vector2Add(ghostTile, dir);
-                    if (!IsWall(nextTile.x, nextTile.y)) {
-                        float dist = Vector2Distance(nextTile, playerTile);
-                        if (dist < min_dist) {
-                            min_dist = dist;
-                            best_dir = dir;
+            if (player.position.x < -TILE_SIZE/2) player.position.x = mapWidth * TILE_SIZE + TILE_SIZE/2;
+            if (player.position.x > mapWidth * TILE_SIZE + TILE_SIZE/2) player.position.x = -TILE_SIZE/2;
+        }
+
+
+        switch(roundState) {
+            case READY: {
+                if (Vector2LengthSqr(player.direction) > 0) {
+                    roundState = PLAYING;
+                }
+            } break;
+
+            case PLAYER_DYING: {
+                roundStateTimer -= GetFrameTime();
+                if (roundStateTimer <= 0) {
+                    if (playerLives <= 0) {
+                        gameOver = true;
+                    } else {
+                        ResetAfterLifeLost();
+                    }
+                }
+            } break;
+
+            case PLAYING: {
+                for (auto& ghost : ghosts) {
+                    if (ghost.state != CHASING) {
+                        ghost.stateTimer -= GetFrameTime();
+                        if (ghost.stateTimer <= 0) {
+                            ghost.state = CHASING;
+                            ghost.speed = 2.0f;
+                        }
+                    }
+
+                    Vector2 ghostTile = WorldToTile(ghost.position);
+                    Vector2 ghostTileCenter = { ghostTile.x * TILE_SIZE + TILE_SIZE / 2, ghostTile.y * TILE_SIZE + TILE_SIZE / 2 };
+                    
+                    if (Vector2Distance(ghost.position, ghostTileCenter) < ghost.speed) {
+                        ghost.position = ghostTileCenter;
+                        float min_dist = 10000.0f;
+                        Vector2 best_dir = {0,0};
+                        std::vector<Vector2> possible_dirs = {{0,-1}, {0,1}, {-1,0}, {1,0}};
+                        Vector2 oppositeDir = Vector2Scale(ghost.direction, -1);
+
+                        for(const auto& dir : possible_dirs) {
+                            if (dir.x == oppositeDir.x && dir.y == oppositeDir.y) continue;
+                            Vector2 nextTile = Vector2Add(ghostTile, dir);
+                            if (!IsWall(nextTile.x, nextTile.y)) {
+                                float dist = Vector2Distance(nextTile, WorldToTile(player.position));
+                                if (dist < min_dist) {
+                                    min_dist = dist;
+                                    best_dir = dir;
+                                }
+                            }
+                        }
+                        if (best_dir.x != 0 || best_dir.y != 0) ghost.direction = best_dir;
+                    }
+                    ghost.position = Vector2Add(ghost.position, Vector2Scale(ghost.direction, ghost.speed));
+                }
+
+                for (auto& p : pellets) {
+                    if (p.active && CheckCollisionCircles(player.position, player.radius, p.position, p.radius)) {
+                        p.active = false;
+                        score += p.points;
+                        activePellets--;
+                        PlaySound(sndChomp);
+                        if (p.isPowerPellet) {
+                            ghostsEatenThisPowerup = 0;
+                            for (auto& ghost : ghosts) {
+                                if (ghost.state != EATEN) {
+                                    ghost.state = FRIGHTENED;
+                                    ghost.stateTimer = 7.0f;
+                                    ghost.speed = 1.5f;
+                                }
+                            }
                         }
                     }
                 }
-                if (best_dir.x != 0 || best_dir.y != 0) {
-                    ghost.direction = best_dir;
-                }
-            }
-            ghost.position = Vector2Add(ghost.position, Vector2Scale(ghost.direction, ghost.speed));
 
-            ghost.frameCounter++;
-            if (ghost.frameCounter >= 8) {
-                ghost.frameCounter = 0;
-                ghost.currentFrame = (ghost.currentFrame + 1) % 2;
-            }
-        }
-
-        // --- Collision Detection ---
-        for (auto& p : pellets) {
-            if (p.active && CheckCollisionCircles(player.position, player.radius, p.position, p.radius)) {
-                p.active = false;
-                score += p.points;
-                activePellets--;
-                if (p.isPowerPellet) {
-                    for (auto& ghost : ghosts) {
-                        if (ghost.state != EATEN) {
-                            ghost.state = FRIGHTENED;
-                            ghost.stateTimer = 7.0f;
-                            ghost.speed = 1.5f;
+                for (auto& ghost : ghosts) {
+                    if (CheckCollisionCircles(player.position, player.radius, ghost.position, ghost.radius)) {
+                        if (ghost.state == CHASING) {
+                            playerLives--;
+                            roundState = PLAYER_DYING;
+                            roundStateTimer = 1.5f;
+                            PlaySound(sndDeath);
+                        } else if (ghost.state == FRIGHTENED) {
+                            ghostsEatenThisPowerup++;
+                            score += 100 * (int)pow(2, ghostsEatenThisPowerup);
+                            ghost.state = EATEN;
+                            ghost.position = ghost.startPosition;
+                            ghost.stateTimer = 3.0f;
+                            PlaySound(sndEatGhost);
                         }
                     }
                 }
-            }
-        }
 
-        for (auto& ghost : ghosts) {
-            if (CheckCollisionCircles(player.position, player.radius, ghost.position, ghost.radius)) {
-                if (ghost.state == CHASING) {
-                    playerLives--;
-                    if (playerLives <= 0) gameOver = true;
-                    else ResetAfterLifeLost();
-                } else if (ghost.state == FRIGHTENED) {
-                    score += 200;
-                    ghost.state = EATEN;
-                    ghost.position = ghost.startPosition;
-                    ghost.stateTimer = 3.0f;
+                if (activePellets <= 0) {
+                     victory = true;
+                     StartNewRound();
                 }
-            }
-        }
-
-        if (activePellets <= 0) {
-            victory = true;
+            } break;
         }
     }
 
     void Draw() override {
-        // Get the logical game dimensions
-        float gameWidth = mapWidth * TILE_SIZE;
-        float gameHeight = mapHeight * TILE_SIZE;
-
         ClearBackground(BLACK);
 
-        // Draw Map centered on the screen
+        if (!mapLoaded) {
+            DrawText(loadErrorText.c_str(), GetScreenWidth() / 2 - MeasureText(loadErrorText.c_str(), 20) / 2, GetScreenHeight() / 2 - 10, 20, RED);
+            return;
+        }
+
+        float gameWidth = mapWidth * TILE_SIZE;
+        float gameHeight = mapHeight * TILE_SIZE;
         Vector2 offset = { (GetScreenWidth() - gameWidth) / 2, (GetScreenHeight() - gameHeight) / 2 };
         
-        for (const auto& wall : walls) {
-             DrawRectangleRec({wall.rect.x + offset.x, wall.rect.y + offset.y, wall.rect.width, wall.rect.height}, BLUE);
-        }
-        for (const auto& pellet : pellets) {
-            if (pellet.active) DrawCircleV(Vector2Add(pellet.position, offset), pellet.radius, YELLOW);
-        }
+        for (const auto& wall : walls) DrawRectangleRec({wall.rect.x + offset.x, wall.rect.y + offset.y, wall.rect.width, wall.rect.height}, DARKBLUE);
+        for (const auto& pellet : pellets) if (pellet.active) DrawCircleV(Vector2Add(pellet.position, offset), pellet.radius, YELLOW);
 
-        // Draw Ghosts
         for (const auto& ghost : ghosts) {
-            Rectangle sourceRec = {0, 0, 16, 16};
-            if (ghost.state == FRIGHTENED) {
-                sourceRec.x = (4 + (ghost.stateTimer < 3.0f && (int)(ghost.stateTimer*4)%2==0 ? 1 : 0)) * 16;
-            } else if (ghost.state == EATEN) {
-                sourceRec.x = 6 * 16;
+            Color ghostColor = WHITE;
+            float ghostRadius = ghost.radius;
+
+            // --- FIX: Draw eaten ghosts as smaller white "eyes" ---
+            if (ghost.state == EATEN) {
+                ghostColor = WHITE;
+                ghostRadius = ghost.radius / 2.0f;
+            } else if (ghost.state == FRIGHTENED) {
+                ghostColor = (ghost.stateTimer < 3.0f && (int)(ghost.stateTimer * 5) % 2 == 0) ? WHITE : DARKBLUE;
             } else {
-                sourceRec.x = ghost.currentFrame * 16;
+                switch(ghost.type) {
+                    case BLINKY: ghostColor = RED; break;
+                    case PINKY:  ghostColor = PINK; break;
+                    case INKY:   ghostColor = SKYBLUE; break;
+                    case CLYDE:  ghostColor = ORANGE; break;
+                }
             }
-            sourceRec.y = ghost.type * 16;
-            Rectangle destRec = { ghost.position.x + offset.x, ghost.position.y + offset.y, TILE_SIZE, TILE_SIZE };
-            DrawTexturePro(ghostsTexture, sourceRec, destRec, {TILE_SIZE/2, TILE_SIZE/2}, 0, WHITE);
+            DrawCircleV(Vector2Add(ghost.position, offset), ghostRadius, ghostColor);
         }
 
-        // Draw Player
-        float rotation = atan2f(player.direction.y, player.direction.x) * RAD2DEG;
-        if (Vector2LengthSqr(player.direction) == 0) rotation = 0;
-        Rectangle sourceRec = { (float)player.currentFrame * 16, 0, 16, 16 };
-        if (Vector2LengthSqr(player.direction) == 0) sourceRec.x = 2 * 16;
-        Rectangle destRec = { player.position.x + offset.x, player.position.y + offset.y, TILE_SIZE, TILE_SIZE };
-        DrawTexturePro(pacmanTexture, sourceRec, destRec, {TILE_SIZE/2, TILE_SIZE/2}, rotation, WHITE);
+        if (roundState == PLAYER_DYING) {
+            float deathProgress = (1.5f - roundStateTimer) / 1.5f;
+            DrawCircleV(Vector2Add(player.position, offset), player.radius * (1.0f - deathProgress), YELLOW);
+        } else {
+            DrawCircleV(Vector2Add(player.position, offset), player.radius, YELLOW);
+        }
 
-        // --- UI DRAWING (FIXED) ---
-        // Draw UI relative to the main screen, not the game world
         DrawText(TextFormat("SCORE: %04i", score), 20, 10, 20, LIME);
         for (int i = 0; i < playerLives; i++) {
-            // Use GetScreenWidth() to position UI correctly on the render texture
-            DrawTexturePro(pacmanTexture, {0, 0, 16, 16}, {GetScreenWidth() - 120.0f + (i * TILE_SIZE), 10, TILE_SIZE, TILE_SIZE}, {0,0}, 0, WHITE);
+            DrawCircle(GetScreenWidth() - 110.0f + (i * TILE_SIZE), 20, TILE_SIZE/2 - 2, YELLOW);
         }
 
-        // Draw Game Over/Victory Text centered on the screen
+        if (roundState == READY) {
+             DrawText("READY!", GetScreenWidth()/2 - MeasureText("READY!", 40)/2, GetScreenHeight()/2 - 40, 40, YELLOW);
+             DrawText("Use WASD to Move", GetScreenWidth()/2 - MeasureText("Use WASD to Move", 20)/2, GetScreenHeight()/2 + 10, 20, GRAY);
+        }
+
         if (gameOver) {
             DrawText("GAME OVER", GetScreenWidth() / 2 - MeasureText("GAME OVER", 40) / 2, GetScreenHeight() / 2 - 40, 40, RED);
             DrawText("Press [ENTER] to Restart", GetScreenWidth() / 2 - MeasureText("Press [ENTER] to Restart", 20) / 2, GetScreenHeight() / 2 + 10, 20, GRAY);
@@ -374,6 +429,10 @@ public:
     }
 };
 
+
+
+
+// ---------- PongChannel ----------
 class PongChannel : public IChannel {
 private:
     // Use an enum to manage the game's state, scoped to this class
