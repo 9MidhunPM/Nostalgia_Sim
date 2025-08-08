@@ -208,7 +208,7 @@ private:
 
 public:
     PacmanChannel() {
-        LoadMap("level.txt");
+        LoadMap("assets/level.txt");
         sndChomp = LoadSound("assets/chomp.wav");
         sndEatGhost = LoadSound("assets/eatghost.wav");
         sndDeath = LoadSound("assets/death.wav");
