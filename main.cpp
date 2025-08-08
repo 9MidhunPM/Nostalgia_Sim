@@ -190,7 +190,6 @@ private:
         
         roundState = READY;
         roundStateTimer = 2.0f;
-        PlaySound(sndStart);
     }
 
     void ResetAfterLifeLost() {
@@ -227,7 +226,14 @@ public:
 
     void OnEnter() override {
         ResetGame();
+        PlaySound(sndStart);
     }
+
+    void OnExit() override {
+        if (IsSoundPlaying(sndStart)) {
+            StopSound(sndStart);
+        }
+    }   
 
     void Update() override {
         if (!mapLoaded || gameOver || victory) {
@@ -483,7 +489,7 @@ public:
         ResetGame(); // Restart the game every time you switch to this channel
     }
 
-    const char* GetName() const override { return "Pong"; }
+    const char* GetName() const override { return "Ping Pong"; }
 
     // Update contains all the game logic
     void Update() override {
@@ -761,12 +767,29 @@ class StaticChannel : public IChannel {
 private:
     Image noiseImage;
     Texture2D noiseTexture;
+    Sound staticSound;
 
 public:
     StaticChannel() {
         // Create a blank image initially
         noiseImage = GenImageColor(screenWidth, screenHeight, BLACK);
         noiseTexture = LoadTextureFromImage(noiseImage);
+        staticSound = LoadSound("assets/static.wav");
+        SetSoundVolume(staticSound, 0.2f);
+    }
+
+    
+
+    void OnEnter() override {
+        if (!IsSoundPlaying(staticSound)) {
+            PlaySound(staticSound);
+        }
+    }
+
+    void OnExit() override {
+        if (IsSoundPlaying(staticSound)) {
+            StopSound(staticSound);
+        }
     }
 
     void Update() override {
@@ -791,6 +814,7 @@ public:
     ~StaticChannel() {
         UnloadTexture(noiseTexture);
         UnloadImage(noiseImage);
+        UnloadSound(staticSound);
     }
 };
 
