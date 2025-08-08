@@ -18,6 +18,7 @@ public:
     virtual void Update() {}
     virtual void OnEnter() {}
     virtual void OnExit() {} 
+    virtual const char* GetName() const = 0;
     virtual ~IChannel() {}
 };
 
@@ -37,12 +38,12 @@ public:
 };
 
 // ---------- PacmanChannel ----------
-
 class PacmanChannel : public IChannel {
 private:
     //----------------------------------------------------------------------------------
     // Types and Structures Definition
     //----------------------------------------------------------------------------------
+
     static constexpr float TILE_SIZE = 24.0f;
 
     enum GhostType { BLINKY, PINKY, INKY, CLYDE };
@@ -80,6 +81,7 @@ private:
     //----------------------------------------------------------------------------------
     // Game State and Asset Variables
     //----------------------------------------------------------------------------------
+
     std::vector<Wall> walls;
     std::vector<Pellet> pellets;
     std::vector<Ghost> ghosts;
@@ -213,6 +215,8 @@ public:
         sndStart = LoadSound("assets/start.wav");
         ResetGame();
     }
+
+    const char* GetName() const override { return "Pac-Man"; }
 
     ~PacmanChannel() {
         UnloadSound(sndChomp);
@@ -408,9 +412,9 @@ public:
             DrawCircleV(Vector2Add(player.position, offset), player.radius, YELLOW);
         }
 
-        DrawText(TextFormat("SCORE: %04i", score), 20, 10, 20, LIME);
+        DrawText(TextFormat("SCORE: %04i", score), 290, 265, 20, LIME);
         for (int i = 0; i < playerLives; i++) {
-            DrawCircle(GetScreenWidth() - 110.0f + (i * TILE_SIZE), 20, TILE_SIZE/2 - 2, YELLOW);
+            DrawCircle(GetScreenWidth() - 390.0f + (i * TILE_SIZE), 275, TILE_SIZE/2 - 2, YELLOW);
         }
 
         if (roundState == READY) {
@@ -429,13 +433,9 @@ public:
     }
 };
 
-
-
-
 // ---------- PongChannel ----------
 class PongChannel : public IChannel {
 private:
-    // Use an enum to manage the game's state, scoped to this class
     enum GameState {
         PLAYING,
         GAME_OVER
@@ -460,7 +460,7 @@ private:
     GameState currentState;
     const char* winnerText;
 
-    // Helper function to reset the game to its initial state
+
     void ResetGame() {
         player = { 30.0f, screenHeight / 2.0f - 50.0f, 10.0f, 100.0f };
         ai = { screenWidth - 40.0f, screenHeight / 2.0f - 50.0f, 10.0f, 100.0f };
@@ -474,15 +474,16 @@ private:
     }
 
 public:
-    // Constructor: Initializes the game
+
     PongChannel() {
         ResetGame();
     }
 
-    // OnEnter is called when the channel becomes active
     void OnEnter() override {
         ResetGame(); // Restart the game every time you switch to this channel
     }
+
+    const char* GetName() const override { return "Pong"; }
 
     // Update contains all the game logic
     void Update() override {
@@ -653,6 +654,8 @@ public:
         DrawText("RickRoll Channel", 10, 10, 20, YELLOW);
     }
 
+    const char* GetName() const override { return "Never Gonna Give You Up"; }
+
     ~RickRollChannel() {
         for (auto &tex : frames) {
             UnloadTexture(tex);
@@ -740,6 +743,8 @@ public:
         }
     }
 
+    const char* GetName() const override { return "DVD Screensaver"; }
+
     void Draw() override {
         ClearBackground(BLACK);
         DrawTextureEx(dvdLogo, pos, 0.0f, scale, currentColor);
@@ -776,6 +781,8 @@ public:
         // Update texture from modified image
         UpdateTexture(noiseTexture, noiseImage.data);
     }
+
+    const char* GetName() const override { return "Static"; }
 
     void Draw() override {
         DrawTexture(noiseTexture, 0, 0, WHITE);
@@ -871,11 +878,15 @@ int main(void) {
     SetTargetFPS(60);
 
     std::vector<IChannel*> channels;
-    channels.push_back(new StaticChannel());         // Channel 0 - Static
-    channels.push_back(new PacmanChannel());         // Channel 1 - Pacman Game
-    channels.push_back(new DVDChannel());          // Channel 2 - DVD Channel
-    channels.push_back(new RickRollChannel());    // Channel 3 - RickRoll
-    channels.push_back(new PongChannel());       // Channel 4 - Pong Game
+    channels.push_back(new StaticChannel());          // Channel 0 - Static
+    channels.push_back(new DVDChannel());            // Channel 1 - DVD Channel
+    channels.push_back(new PacmanChannel());        // Channel 3 - Pacman Game
+    channels.push_back(new PongChannel());         // Channel 3 - Pong Game
+    channels.push_back(new RickRollChannel());    // Channel 4 - RickRoll
+
+    float overlayTimer = 0.0f;
+    const float OVERLAY_DURATION = 5.0f;
+    std::string channelInfoText = "";
 
     Shader crtShader = LoadShaderFromMemory(0, crtShaderCode);
 
@@ -890,6 +901,12 @@ int main(void) {
     SetShaderValue(crtShader, resolutionLoc, resolution, SHADER_UNIFORM_VEC2);
 
     RenderTexture2D screenTarget = LoadRenderTexture(screenWidth, screenHeight);
+
+    if (!channels.empty()) {
+        channels[currentChannel]->OnEnter();
+        overlayTimer = OVERLAY_DURATION;
+        channelInfoText = TextFormat("CH %d - %s", currentChannel, channels[currentChannel]->GetName());
+    }   
 
     // ---------- Game Loop ----------
     while (!WindowShouldClose()) {
@@ -911,6 +928,12 @@ int main(void) {
         if (channelChanged) {
             channels[previousChannel]->OnExit();  // Deactivate the old channel
             channels[currentChannel]->OnEnter(); // Activate the new one
+            overlayTimer = OVERLAY_DURATION;
+            channelInfoText = TextFormat("CH %d - %s", currentChannel, channels[currentChannel]->GetName());
+        }
+
+        if (overlayTimer > 0) {
+            overlayTimer -= GetFrameTime();
         }
 
         float timeValue = GetTime();
@@ -922,6 +945,16 @@ int main(void) {
         channels[currentChannel]->Update();
         channels[currentChannel]->Draw();
         DrawText(TextFormat("Channel %d", currentChannel), 1150, 10, 20, DARKGRAY);
+
+        if (overlayTimer > 0) {
+            float alpha = 1.0f;
+            if (overlayTimer < 1.0f) alpha = overlayTimer; // Fade out in the last second
+
+            DrawRectangle(0, screenHeight - 60, screenWidth, 60, Fade(Color{0, 0, 0, 180}, alpha));
+            int textWidth = MeasureText(channelInfoText.c_str(), 40);
+            DrawText(channelInfoText.c_str(), screenWidth / 2 - textWidth / 2, screenHeight - 50, 40, Fade(WHITE, alpha));
+            }        
+
         EndTextureMode();
 
         // Draw the texture with CRT shader
