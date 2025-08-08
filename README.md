@@ -1,102 +1,86 @@
-<img width="3188" height="1202" alt="frame (3)" src="https://github.com/user-attachments/assets/517ad8e9-ad22-457d-9538-a9e62d137cd7" />
+<img width="3188" height="1202" alt="Nostalgia Simulator Banner" src="https://github.com/user-attachments/assets/517ad8e9-ad22-457d-9538-a9e62d137cd7" />
 
+Nostalgia Simulator 🎯
+Basic Details
+Team Name: The Channel Surfers
+Team Members
+Team Lead: Midhun - [Your College]
 
-# [Project Name] 🎯
+Member 2: [Name] - [College]
 
+Member 3: [Name] - [College]
 
-## Basic Details
-### Team Name: [Name]
+Project Description
+The Nostalgia Simulator is a high-fidelity recreation of staring at a CRT television in the late 90s. It's a multi-channel application featuring several classic games and screensavers, all rendered through an authentic retro shader that simulates screen curvature, scanlines, and static interference.
 
+The Problem (that doesn't exist)
+In today's fast-paced world of 4K streaming and instant gratification, we've lost the simple joy of flipping through a limited number of channels, hoping to find something, anything, to watch. The youth of today will never know the suspense of a bouncing DVD logo or the hypnotic trance of screen static.
 
-### Team Members
-- Team Lead: [Name] - [College]
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+The Solution (that nobody asked for)
+We've bottled that feeling. The Nostalgia Simulator provides a curated set of channels, including playable classics like Pac-Man and Pong, the legendary DVD screensaver, and even a surprise or two. It's a digital time capsule designed to solve a problem you didn't know you had: a distinct lack of fuzzy, low-resolution entertainment.
 
-### Project Description
-[2-3 lines about what your project does]
-
-### The Problem (that doesn't exist)
-[What ridiculous problem are you solving?]
-
-### The Solution (that nobody asked for)
-[How are you solving it? Keep it fun!]
-
-## Technical Details
-### Technologies/Components Used
-For Software:
-- [Languages used]
-- [Frameworks used]
-- [Libraries used]
-- [Tools used]
-
-For Hardware:
-- [List main components]
-- [List specifications]
-- [List tools required]
-
-### Implementation
-For Software:
-# Installation
-[commands]
-
-# Run
-[commands]
-
-### Project Documentation
+Technical Details
+Technologies/Components Used
 For Software:
 
-# Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
+Languages: C++, GLSL (for the CRT shader)
 
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
+Libraries: raylib, raymath
 
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
-
-# Diagrams
-![Workflow](Add your workflow/architecture diagram here)
-*Add caption explaining your workflow*
+Tools: MinGW (for Windows compilation), Emscripten (for web compilation), Python (for local web server)
 
 For Hardware:
 
-# Schematic & Circuit
-![Circuit](Add your circuit diagram here)
-*Add caption explaining connections*
+This is a software-only project. The only required hardware is a computer and a longing for the past.
 
-![Schematic](Add your schematic diagram here)
-*Add caption explaining the schematic*
+Implementation
+For Software:
 
-# Build Photos
-![Components](Add photo of your components here)
-*List out all components shown*
+Installation (Desktop - Windows)
+# Ensure you have raylib configured with your g++ compiler
+g++ main.cpp -o NostalgiaSimulator.exe -lraylib -lopengl32 -lgdi32 -lwinmm
 
-![Build](Add photos of build process here)
-*Explain the build steps*
+Run (Desktop)
+./NostalgiaSimulator.exe
 
-![Final](Add photo of final product here)
-*Explain the final build*
+Installation (Web)
+# Ensure you have Emscripten and raylib for web configured
+em++ main.cpp -o index.js -Os -s USE_GLFW=3 -s ASYNCIFY --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L "path/to/raylib/build_web/raylib" -lraylib
 
-### Project Demo
-# Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
+Run (Web)
+# You'll need a simple local server to run the web build
+python -m http.server
+# Then open your browser to http://localhost:8000
 
-# Additional Demos
-[Add any extra demo materials/links]
+Project Documentation
+For Software:
 
-## Team Contributions
-- [Name 1]: [Specific contributions]
-- [Name 2]: [Specific contributions]
-- [Name 3]: [Specific contributions]
+Screenshots (Add at least 3)
+The Pac-Man channel in action, complete with the CRT shader effect.
 
----
-Made with ❤️ at TinkerHub Useless Projects 
+A heated match of Pong against the surprisingly competent AI.
 
-![Static Badge](https://img.shields.io/badge/TinkerHub-24?color=%23000000&link=https%3A%2F%2Fwww.tinkerhub.org%2F)
-![Static Badge](https://img.shields.io/badge/UselessProjects--25-25?link=https%3A%2F%2Fwww.tinkerhub.org%2Fevents%2FQ2Q1TQKX6Q%2FUseless%2520Projects)
+The legendary bouncing DVD logo, a sight that has brought joy to millions.
 
+Diagrams
+Our workflow consists of a main loop that draws the active "Channel" to a render texture, which is then drawn to the screen with the CRT shader applied.
 
+For Hardware:
+N/A
 
+Project Demo
+Video
+[Add your demo video link here - e.g., a YouTube or Loom link]
+This video demonstrates the seamless channel surfing, gameplay from Pac-Man and Pong, and the various visual effects of the CRT shader.
+
+Additional Demos
+[Link to the live web build if you host it somewhere like GitHub Pages]
+
+Team Contributions
+Midhun: Project Lead, core application architecture, implemented the channel system, developed Pac-Man and Pong game logic, integrated the CRT shader, and handled the Emscripten web build.
+
+[Name 2]: [Specific contributions]
+
+[Name 3]: [Specific contributions]
+
+Made with ❤️ at TinkerHub Useless Projects
