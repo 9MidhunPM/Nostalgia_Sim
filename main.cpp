@@ -1,3 +1,25 @@
+/*******************************************************************************************
+*
+* Nostalgia Simulator - A Multi-Channel Retro Game Application
+*
+* This project is a container for several mini-games and visualizers, each running on its
+* own "channel," like an old CRT television. The entire display is rendered through a
+* post-processing shader to give it an authentic retro feel, complete with barrel
+* distortion, scanlines, and screen flicker.
+*
+* -- CONTROLS --
+* - LEFT/RIGHT ARROW KEYS: Switch between channels.
+* - GAME-SPECIFIC CONTROLS:
+* - Pac-Man: WASD keys to move.
+* - Pong: W and S keys to move the paddle.
+*
+* -- HOW TO ADD A NEW CHANNEL --
+* 1. Create a new class that inherits from the `IChannel` base class.
+* 2. Implement the virtual functions (`Update`, `Draw`, `OnEnter`, `OnExit`, `GetName`).
+* 3. In `main()`, create a new instance of your class and add it to the `channels` vector.
+*
+*
+********************************************************************************************/
 #include "raylib.h"
 #include "raymath.h"
 #include <vector>
@@ -48,7 +70,7 @@ private:
 
     enum GhostType { BLINKY, PINKY, INKY, CLYDE };
     enum GhostState { CHASING, FRIGHTENED, EATEN };
-    enum RoundState { READY, PLAYING, PLAYER_DYING, LEVEL_COMPLETE };
+    enum RoundState { READY, PLAYING, PLAYER_DYING };
 
     struct Player {
         Vector2 position, startPosition, direction = {0, 0}, desiredDirection = {0, 0};
@@ -207,7 +229,7 @@ private:
 
 public:
     PacmanChannel() {
-        LoadMap("assets/level.txt");
+        LoadMap("level.txt");
         sndChomp = LoadSound("assets/chomp.wav");
         sndEatGhost = LoadSound("assets/eatghost.wav");
         sndDeath = LoadSound("assets/death.wav");
@@ -606,7 +628,7 @@ public:
     RickRollChannel() {
         // Load all frames into memory
         for (int i = 0; ; i++) {
-            std::string path = TextFormat("E:/Codaing/Useless_Project/assets/rickroll/frame_%03d.png", i);
+            std::string path = TextFormat("assets/rickroll/frame_%03d.png", i);
             if (!FileExists(path.c_str())) break; // stop if no more frames
 
             Image img = LoadImage(path.c_str());
@@ -693,7 +715,7 @@ public:
         speed = { 4, 3 }; // pixels per frame
     }
 
-    void Update() {
+    void Update() override {
         pos.x += speed.x;
         pos.y += speed.y;
 
@@ -778,8 +800,6 @@ public:
         SetSoundVolume(staticSound, 0.2f);
     }
 
-    
-
     void OnEnter() override {
         if (!IsSoundPlaying(staticSound)) {
             PlaySound(staticSound);
@@ -819,87 +839,77 @@ public:
 };
 
 
-// ---------- CRT Shader Source ----------
+// ---------- CRT Shader Source (WebGL 1.0 Compatible) ----------
 const char* crtShaderCode = R"(
-#version 330
+#version 100
+precision mediump float;
 
-in vec2 fragTexCoord;
-in vec4 fragColor;
+varying vec2 fragTexCoord;
+varying vec4 fragColor;
 
 uniform sampler2D texture0;
 uniform float time;
 uniform vec2 resolution;
 
-out vec4 finalColor;
-
 void main()
 {
-    // UV coords from 0 to 1 and Barrel Distortion
-    vec2 uv = vec2(fragTexCoord.x, 1.0 - fragTexCoord.y);
+    // For web, we don't flip the UVs here. The flipping is handled in the main C++ draw call.
+    vec2 uv = fragTexCoord;
+    
     float distortion = 0.1;
     vec2 centeredUV = uv * 2.0 - 1.0;
     float r2 = dot(centeredUV, centeredUV);
     centeredUV *= 1.0 + distortion * r2;
     uv = centeredUV * 0.5 + 0.5;
 
-    // Border check
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-        finalColor = vec4(vec3(0.2), 1.0);
+        gl_FragColor = vec4(vec3(0.2), 1.0);
         return;
     }
 
-    // --- CORRECTED ORDER OF EFFECTS ---
-
-    // 1. Chromatic Aberration (Applied FIRST)
-    // Check if the pixel is grayscale to protect the static channel from color fringing.
     vec3 col;
-    vec3 center_color = texture(texture0, uv).rgb;
-
-    // A small tolerance to check if R, G, and B values are nearly equal.
+    vec3 center_color = texture2D(texture0, uv).rgb;
     float gray_threshold = 0.05;
 
     if (abs(center_color.r - center_color.g) < gray_threshold && abs(center_color.g - center_color.b) < gray_threshold)
     {
-        // PIXEL IS GRAYSCALE: Don't apply chromatic aberration.
         col = center_color;
     }
     else
     {
-        // PIXEL IS COLORFUL: Apply the standard chromatic aberration.
         float offset = 1.5 / resolution.x;
-        col.r = texture(texture0, uv + vec2(offset, 0.0)).r;
-        col.g = center_color.g; // Reuse the green channel from our first sample
-        col.b = texture(texture0, uv - vec2(offset, 0.0)).b;
+        col.r = texture2D(texture0, uv + vec2(offset, 0.0)).r;
+        col.g = center_color.g;
+        col.b = texture2D(texture0, uv - vec2(offset, 0.0)).b;
     }
 
-    // 2. Rolling Wave Flicker (Applied SECOND)
-    // Now, add the flicker effect to our base color.
-    float flicker_period = 5.0;
-    float flicker_duration = 0.4;
-    if (mod(time, flicker_period) < flicker_duration) {
+    if (mod(time, 5.0) < 0.4) {
         float wave = sin(uv.y * 30.0 - time * 60.0);
         wave = smoothstep(0.9, 1.0, wave);
         col += vec3(wave * 0.8);
     }
 
-    // 3. Scanline Effect (Applied THIRD)
     float scanline = sin(uv.y * resolution.y * 1.5) * 0.04;
     col -= scanline;
 
-    // 4. Vignette (Applied LAST)
     float vignette = smoothstep(0.8, 0.2, length(uv - 0.5));
     col *= vignette;
 
-    // Final color output
-    finalColor = vec4(col, 1.0);
+    gl_FragColor = vec4(col, 1.0);
 }
-
 )";
+
+enum AppState {
+    START_SCREEN,
+    RUNNING
+};
 
 int main(void) {
     InitWindow(screenWidth, screenHeight, "Nostalgia Simulator");
     InitAudioDevice();
     SetTargetFPS(60);
+
+    AppState appState = START_SCREEN;
 
     std::vector<IChannel*> channels;
     channels.push_back(new StaticChannel());          // Channel 0 - Static
@@ -909,7 +919,7 @@ int main(void) {
     channels.push_back(new RickRollChannel());    // Channel 4 - RickRoll
 
     float overlayTimer = 0.0f;
-    const float OVERLAY_DURATION = 5.0f;
+    const float OVERLAY_DURATION = 3.0f;
     std::string channelInfoText = "";
 
     Shader crtShader = LoadShaderFromMemory(0, crtShaderCode);
@@ -926,59 +936,79 @@ int main(void) {
 
     RenderTexture2D screenTarget = LoadRenderTexture(screenWidth, screenHeight);
 
-    if (!channels.empty()) {
-        channels[currentChannel]->OnEnter();
-        overlayTimer = OVERLAY_DURATION;
-        channelInfoText = TextFormat("CH %d - %s", currentChannel, channels[currentChannel]->GetName());
-    }   
-
     // ---------- Game Loop ----------
     while (!WindowShouldClose()) {
-        // Switch channels
-        bool channelChanged = false;
-        int previousChannel = currentChannel;
-
-        // --- Switch channels ---
-        if (IsKeyPressed(KEY_RIGHT)) {
-            currentChannel = (currentChannel + 1) % channels.size();
-            channelChanged = true;
-        }
-        if (IsKeyPressed(KEY_LEFT)) {
-            currentChannel = (currentChannel - 1 + channels.size()) % channels.size();
-            channelChanged = true;
-        }
-
-        // --- Handle activation/deactivation on change ---
-        if (channelChanged) {
-            channels[previousChannel]->OnExit();  // Deactivate the old channel
-            channels[currentChannel]->OnEnter(); // Activate the new one
-            overlayTimer = OVERLAY_DURATION;
-            channelInfoText = TextFormat("CH %d - %s", currentChannel, channels[currentChannel]->GetName());
-        }
-
-        if (overlayTimer > 0) {
-            overlayTimer -= GetFrameTime();
-        }
 
         float timeValue = GetTime();
         SetShaderValue(crtShader, timeLoc, &timeValue, SHADER_UNIFORM_FLOAT);
 
+        if (appState == START_SCREEN) {
+            // Logic for the "Off" State
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                appState = RUNNING; // Turn the TV "on"
+                
+                // Activate the first channel ONLY when the game starts
+                if (!channels.empty()) {
+                    channels[currentChannel]->OnEnter();
+                    overlayTimer = OVERLAY_DURATION;
+                    channelInfoText = TextFormat("CH %d - %s", currentChannel, channels[currentChannel]->GetName());
+                }
+            }
+        }
+        else if (appState == RUNNING) {         
+            // Switch channels
+            bool channelChanged = false;
+            int previousChannel = currentChannel;
+
+            // --- Switch channels ---
+            if (IsKeyPressed(KEY_RIGHT)) {
+                currentChannel = (currentChannel + 1) % channels.size();
+                channelChanged = true;
+            }
+            if (IsKeyPressed(KEY_LEFT)) {
+                currentChannel = (currentChannel - 1 + channels.size()) % channels.size();
+                channelChanged = true;
+            }
+
+            // --- Handle activation/deactivation on change ---
+            if (channelChanged) {
+                channels[previousChannel]->OnExit();  // Deactivate the old channel
+                channels[currentChannel]->OnEnter(); // Activate the new one
+                overlayTimer = OVERLAY_DURATION;
+                channelInfoText = TextFormat("CH %d - %s", currentChannel, channels[currentChannel]->GetName());
+            }
+
+            if (overlayTimer > 0) {
+                overlayTimer -= GetFrameTime();
+            }
+
+            channels[currentChannel]->Update();
+        }
+
         // Draw to render texture first
         BeginTextureMode(screenTarget);
         ClearBackground(BLACK);
-        channels[currentChannel]->Update();
-        channels[currentChannel]->Draw();
-        DrawText(TextFormat("Channel %d", currentChannel), 1150, 10, 20, DARKGRAY);
 
-        if (overlayTimer > 0) {
-            float alpha = 1.0f;
-            if (overlayTimer < 1.0f) alpha = overlayTimer; // Fade out in the last second
+        if (appState == RUNNING) {
+            
+            channels[currentChannel]->Draw();
+            DrawText(TextFormat("Channel %d", currentChannel), 1150, 10, 20, DARKGRAY);
 
-            DrawRectangle(0, screenHeight - 60, screenWidth, 60, Fade(Color{0, 0, 0, 180}, alpha));
-            int textWidth = MeasureText(channelInfoText.c_str(), 40);
-            DrawText(channelInfoText.c_str(), screenWidth / 2 - textWidth / 2, screenHeight - 50, 40, Fade(WHITE, alpha));
-            }        
+            if (overlayTimer > 0) {
+                float alpha = 1.0f;
+                if (overlayTimer < 1.0f) alpha = overlayTimer; // Fade out in the last second
 
+                DrawRectangle(0, screenHeight - 60, screenWidth, 60, Fade(Color{0, 0, 0, 180}, alpha));
+                int textWidth = MeasureText(channelInfoText.c_str(), 40);
+                DrawText(channelInfoText.c_str(), screenWidth / 2 - textWidth / 2, screenHeight - 50, 40, Fade(WHITE, alpha));
+                }        
+            }
+            else {
+                // Draw the start screen text
+                const char* msg = "CLICK TO POWER ON";
+                int textWidth = MeasureText(msg, 40);
+                DrawText(msg, screenWidth / 2 - textWidth / 2, screenHeight / 2 - 20, 40, GRAY);
+            }
         EndTextureMode();
 
         // Draw the texture with CRT shader
@@ -986,7 +1016,7 @@ int main(void) {
         ClearBackground(BLACK);
 
         BeginShaderMode(crtShader);
-        DrawTexture(screenTarget.texture, 0, 0, WHITE);
+        DrawTextureRec(screenTarget.texture, { 0, 0, (float)screenTarget.texture.width, (float)-screenTarget.texture.height }, { 0, 0 }, WHITE);
 
         EndShaderMode();
 
@@ -994,7 +1024,7 @@ int main(void) {
     }
 
     // Cleanup
-    for (auto c : channels){ c->OnExit(); c;}
+    for (auto c : channels){ c->OnExit(); delete c;}
     CloseAudioDevice();
     UnloadRenderTexture(screenTarget);
     UnloadShader(crtShader);
