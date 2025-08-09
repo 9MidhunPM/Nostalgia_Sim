@@ -3,7 +3,7 @@
 # Nostalgia Simulator 🎯
 
 ## Basic Details
-### Team Name: RetroRewinders
+### Team Name: Professional Failures
 
 ### Team Members
 - Team Lead: Midhun P M - Sahrdaya College of Engineering
@@ -33,18 +33,14 @@ We've bottled that feeling. The Nostalgia Simulator provides a curated set of ch
 
 **Installation (Desktop):**
 ```bash
-git clone https://github.com/9MidhunPM/Nostalgia_Sim
-cd NostalgiaSimulator
-mkdir build && cd build
-cmake ..
-make
-./NostalgiaSimulator
+g++ main.cpp -o NostalgiaSimulator.exe -lraylib -lopengl32 -lgdi32 -lwinmm
+./NostalgiaSimulator.exe
 ```
 
 **Installation (Web)**
 # Ensure you have Emscripten and raylib for web configured
 ```bash
-em++ main.cpp -o index.js -Os -s USE_GLFW=3 -s ASYNCIFY --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L "path/to/raylib/build_web/raylib" -lraylib 
+em++ main.cpp -o index.js -Os -s USE_GLFW=3 -s ASYNCIFY --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L "path/to/raylib/build_web/raylib" -lraylib
 ```
 
 **Run (Web)**
