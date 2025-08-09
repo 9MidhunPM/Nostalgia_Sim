@@ -55,16 +55,16 @@ python -m http.server
 
 # Screenshots
 - The Pac-Man channel in action, complete with the CRT shader effect.
+[Screenshot1](assets/pacmanGameplay.png)
 
 - A heated match of Pong against the surprisingly competent AI.
+[Screenshot2](assets/pongGameplay.png)
 
 - The legendary bouncing DVD logo, a sight that has brought joy to millions.
+[Screenshot3](assets/dvdGameplay.png)
 
 # Diagrams
 - Our workflow consists of a main loop that draws the active "Channel" to a render texture, which is then drawn to the screen with the CRT shader applied.
-
-# For Hardware:
- N/A
 
 ### Project Demo
 - [Demo Link](https://9midhunpm.github.io/Nostalgia_Sim/)
