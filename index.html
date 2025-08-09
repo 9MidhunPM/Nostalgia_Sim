@@ -25,21 +25,18 @@
             overflow: hidden;
         }
 
-        /* The main TV container with a new side-panel layout */
         #tv-container {
             width: 95vw;
             max-width: 1400px;
-            aspect-ratio: 18 / 10; /* Wider aspect ratio for side panel */
+            aspect-ratio: 18 / 10;
             background: linear-gradient(145deg, #383838, #222);
             border-radius: 30px;
-            /* --- FIX: Removed the box-shadow to ensure a pure black background --- */
             padding: 2%;
             display: flex;
             gap: 2%;
             border: 2px solid #111;
         }
 
-        /* The screen area where the canvas lives */
         #screen-container {
             background-color: black;
             border-radius: 15px;
@@ -51,7 +48,6 @@
             overflow: hidden;
         }
         
-        /* Scanlines overlay to blend the bezel and content */
         #screen-container::after {
             content: '';
             position: absolute;
@@ -72,7 +68,6 @@
             image-rendering: pixelated;
         }
         
-        /* The new side panel for controls */
         #side-panel {
             width: 23%;
             height: 100%;
@@ -134,7 +129,6 @@
             text-shadow: 1px 1px 1px #000;
         }
         
-        /* --- NEW: Control Legend Section --- */
         #controls-legend {
             width: 100%;
             flex-grow: 1;
@@ -188,7 +182,6 @@
         <div id="side-panel">
             <div id="brand-logo">GEMINI</div>
             
-            <!-- This new section displays the controls -->
             <div id="controls-legend">
                 <div class="legend-section">
                     <h4>Channel</h4>
@@ -216,6 +209,7 @@
     </div>
 
     <script type="module">
+        // --- FIX: Using a relative path to ensure it works everywhere ---
         import createModule from './index.js';
 
         const canvas = document.querySelector('#canvas');
