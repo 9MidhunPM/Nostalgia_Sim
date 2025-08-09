@@ -33,22 +33,26 @@ We've bottled that feeling. The Nostalgia Simulator provides a curated set of ch
 
 **Installation (Desktop):**
 ```bash
-# For Desktop (Windows with MinGW)
-g++ main.cpp -o NostalgiaSimulator.exe -lraylib -lopengl32 -lgdi32 -lwinmm
-
-# For Web (Emscripten)
-em++ main.cpp -o index.js -Os --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L "path/to/raylib/build_web/raylib" -lraylib
-
+git clone https://github.com/9MidhunPM/Nostalgia_Sim
+cd NostalgiaSimulator
+mkdir build && cd build
+cmake ..
+make
+./NostalgiaSimulator
+```
 
 **Installation (Web)**
 # Ensure you have Emscripten and raylib for web configured
-
-- em++ main.cpp -o index.js -Os -s USE_GLFW=3 -s ASYNCIFY --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L - - "path/to/raylib/build_web/raylib" -lraylib ```
+```bash
+em++ main.cpp -o index.js -Os -s USE_GLFW=3 -s ASYNCIFY --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L "path/to/raylib/build_web/raylib" -lraylib 
+```
 
 **Run (Web)**
 # You'll need a simple local server to run the web build
-- python -m http.server
+```bash
+python -m http.server
 # Then open your browser to http://localhost:8000
+```
 
 **Project Documentation**
 # For Software:
@@ -64,7 +68,7 @@ em++ main.cpp -o index.js -Os --preload-file assets -s MODULARIZE=1 -s EXPORT_ES
 - Our workflow consists of a main loop that draws the active "Channel" to a render texture, which is then drawn to the screen with the CRT shader applied.
 
 # For Hardware:
-- N/A
+ N/A
 
 ### Project Demo
 - [Demo Link](https://9midhunpm.github.io/Nostalgia_Sim/)
