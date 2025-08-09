@@ -10,7 +10,7 @@
 - Member 2: Sharon Kariyattil - Sahrdaya College of Engineering
 
 ### Project Description
-In today's fast-paced world of 4K streaming and instant gratification, we've lost the simple joy of flipping through a limited number of channels, hoping to find something, *anything*, to watch. The youth of today will never know the suspense of a bouncing DVD logo or the hypnotic trance of screen static.
+The Nostalgia Simulator is a high-fidelity recreation of staring at a CRT television in the late 90s. It's a multi-channel application featuring several classic games and screensavers, all rendered through an authentic retro shader that simulates screen curvature, scanlines, and static interference written purely on cpp essentially.
 
 ### The Problem (that doesn't exist)
 In today's fast-paced world of 4K streaming and instant gratification, we've lost the simple joy of flipping through a limited number of channels, hoping to find something, *anything*, to watch. The youth of today will never know the suspense of a bouncing DVD logo or the hypnotic trance of screen static.
@@ -55,12 +55,15 @@ python -m http.server
 
 # Screenshots
 - The Pac-Man channel in action, complete with the CRT shader effect.
+
 ![Screenshot1](assets/pacmanGameplay.png)
 
 - A heated match of Pong against the surprisingly competent AI.
+
 ![Screenshot2](assets/pongGameplay.png)
 
 - The legendary bouncing DVD logo, a sight that has brought joy to millions.
+
 ![Screenshot3](assets/dvdGameplay.png)
 
 # Diagrams
