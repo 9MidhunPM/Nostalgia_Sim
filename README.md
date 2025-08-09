@@ -6,42 +6,38 @@
 ### Team Name: RetroRewinders
 
 ### Team Members
-- Team Lead: Midhun - Sahrdaya College of Engineering
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+- Team Lead: Midhun P M - Sahrdaya College of Engineering
+- Member 2: Sharon Kariyattil - Sahrdaya College of Engineering
 
 ### Project Description
-Nostalgia Simulator is a C++ application that recreates the feel of an old CRT TV with multiple “channels,” each hosting a different game or visualizer. It features classic games, video playback, and authentic CRT effects powered by raylib and GLSL shaders.
+In today's fast-paced world of 4K streaming and instant gratification, we've lost the simple joy of flipping through a limited number of channels, hoping to find something, *anything*, to watch. The youth of today will never know the suspense of a bouncing DVD logo or the hypnotic trance of screen static.
 
 ### The Problem (that doesn't exist)
-Who actually needs a modern, slick UI when you can have fuzzy static, bouncing DVD logos, and pixelated Pac-Man ghosts? Nobody asked for this, but everyone secretly wants it.
+In today's fast-paced world of 4K streaming and instant gratification, we've lost the simple joy of flipping through a limited number of channels, hoping to find something, *anything*, to watch. The youth of today will never know the suspense of a bouncing DVD logo or the hypnotic trance of screen static.
 
 ### The Solution (that nobody asked for)
-We’re throwing a time machine into your screen—multiple games, a rickroll video, and more—wrapped in a CRT shader that makes your monitor feel like it’s from the 80s. Channel surf your boredom away with glitchy nostalgia and retro vibes.
+We've bottled that feeling. The Nostalgia Simulator provides a curated set of channels, including playable classics like Pac-Man and Pong, the legendary DVD screensaver, and even a surprise or two. It's a digital time capsule designed to solve a problem you didn't know you had: a distinct lack of fuzzy, low-resolution entertainment.
 
 ## Technical Details
 ### Technologies/Components Used
 
 **Software:**
-- C++ (Core language)
-- raylib (Graphics & audio)
-- GLSL (CRT post-processing shader)
-- Emscripten (For web deployment)
+* **Languages:** C++, GLSL
+* **Libraries:** raylib, raymath
+* **Tools:** MinGW, Emscripten, Python
 
 **Hardware:**
-- Standard PC or laptop capable of running OpenGL apps
-- Web browser (for WebAssembly version)
+* This is a software-only project.
 
 ### Implementation
 
 **Installation (Desktop):**
-- bash
-- git clone https://github.com/9MidhunPM/Nostalgia_Sim
-- cd NostalgiaSimulator
-- mkdir build && cd build
-- cmake ..
-- make
-- ./NostalgiaSimulator
+```bash
+# For Desktop (Windows with MinGW)
+g++ main.cpp -o NostalgiaSimulator.exe -lraylib -lopengl32 -lgdi32 -lwinmm
+
+# For Web (Emscripten)
+em++ main.cpp -o index.js -Os --preload-file assets -s MODULARIZE=1 -s EXPORT_ES6 -s ALLOW_MEMORY_GROWTH=1 -I "path/to/raylib/src" -L "path/to/raylib/build_web/raylib" -lraylib
 
 
 **Installation (Web)**
